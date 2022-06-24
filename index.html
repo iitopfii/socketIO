@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>test</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS v5.0.2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+</head>
+
+<body>
+    <!-- create html chat realtime -->
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Chat Realtime <span id="user_text"></span></h3>
+                    </div>
+                    <!-- /.card-header -->
+                    <div class="card-body">
+                        <div class="mb-3">
+                          <label for="" class="form-label">Username</label>
+                          <input type="text" class="form-control" value="Anonymous" name="username" id="username">
+                        </div>
+                        <button class="btn btn-primary" id="change_name">change</button>
+                        <div class="mb-3 mt-3">
+                          <label for="" class="form-label">Message</label>
+                          <input type="text" class="form-control" name="message" id="message">
+                        </div>
+                        <button class="btn btn-primary" id="send">Send</button>
+                        <button class="btn btn-primary" id="announce">announce</button>
+                    </div>
+                    <!-- /.card-body -->
+                </div>
+                <!-- /.card -->
+            </div>
+
+
+
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Message Realtime</h3>
+                    </div>
+                    <!-- /.card-header -->
+                    <div class="card-body">
+                        <ul class="nav justify-content-center">
+                            <li class="nav-item" id="room">
+                                <a class="nav-link " href="#">Active link</a>
+                            </li>
+
+                        </ul>
+            
+
+
+                        <ul class="list-group" id="message-list">
+                            <!-- <li class="list-group-item">Active item</li>
+                            <li class="list-group-item">Item</li>
+                            <li class="list-group-item">Disabled item</li> -->
+                        </ul>
+                        <div class="info" id="show_typing"></div>
+                    </div>
+                    <!-- /.card-body -->
+                </div>
+                <!-- /.card -->
+            <!-- /.col -->
+        </div>
+        <!-- /.row -->
+    </div>
+    <!-- /.container -->
+
+
+
+    <!-- Bootstrap JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"
+        integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js"
+        integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF"
+        crossorigin="anonymous"></script>
+
+    <!-- socket.io -->
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js" integrity="sha384-7EyYLQZgWBi67fBtVxw60/OWl1kjsfrPFcaU0pp0nAh+i8FD068QogUvg85Ewy1k" crossorigin="anonymous"></script>
+    <script>
+        let username = document.querySelector('#username');
+        let cUser = document.querySelector('#change_name');
+        let message = document.querySelector('#message');
+        let ms_list = document.querySelector('#message-list');
+        let send = document.querySelector('#send');
+        let announce = document.querySelector('#announce');
+
+        // get path name
+        let path = window.location.pathname;
+        let path_name = path.split('/');
+        let room_id = path_name[path_name.length - 1];
+
+        // socket.io
+
+        var socket = io.connect('http://localhost:3000');
+
+        socket.emit('join', {
+            username: username.value,
+            room_id: room_id
+        });
+
+
+        socket.on("connect", () => {
+            console.log(socket.id);
+        });
+
+        socket.on('message', (data) => {
+            console.log(data);
+            let li = document.createElement('li');
+            li.textContent = data.username + ' : '+ data.message;
+            li.classList.add('list-group-item');
+            ms_list.appendChild(li);
+        });
+        
+        socket.on('typing' , (data) => {
+            console.log(data);
+            let info = document.querySelector('#show_typing');
+            info.textContent = data + ' is typing...';
+
+        });
+        socket.on('typing_end' , (data) => {
+            let info = document.querySelector('#show_typing');
+            info.textContent = '';
+
+        });
+
+        message.addEventListener('keypress', () => {
+            socket.emit('typing', {
+                username: username.value,
+                room_id: room_id
+            });
+        });
+        message.addEventListener('keyup', () => {
+            socket.emit('typing_end', {
+                username: username.value,
+                room_id: room_id
+            });
+        });
+        announce.addEventListener('click', () => {
+            socket.emit('announce', {
+                username: username.value,
+                message: message.value
+            });
+        });
+
+
+
+
+        send.addEventListener('click', function(){
+            socket.emit('message', {
+                username: username.value,
+                message: message.value
+            });
+            message.value = '';
+
+        });
+
+
+        cUser.addEventListener('click', function(e){
+            e.preventDefault();
+            socket.emit('change_username', username.value);
+            document.getElementById('user_text').innerHTML = 'Name : ' +username.value;
+        });
+
+
+        
+
+    </script>
+
+</body>
+
+</html>
